@@ -19,7 +19,7 @@ An interactive data visualization web application exploring survival patterns fr
 - **Age Patterns**: Children under 12 had 50% survival rate vs 36% for adults
 - **Family Size**: Mid-sized families (2-4 members) had highest survival rates
 
-#🛠️ Technologies
+#Technologies
 
 - **Python 3.11+**: Core language
 - **Pandas**: Data manipulation and analysis
