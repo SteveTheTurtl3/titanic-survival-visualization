@@ -2,7 +2,7 @@
 
 An interactive data visualization web application exploring survival patterns from the 1912 Titanic disaster. Built with Python, Plotly, and Gradio.
 
-**[View Live Application](https://huggingface.co/spaces/YOUR_USERNAME/titanic-survival-visualization)**
+**[View Live Application](https://huggingface.co/spaces/SteveTheTurtl3/titanic-survival-visualization)**
 
 #Features
 
