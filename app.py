@@ -1,103 +1,60 @@
-"""
-Titanic Survival Data Visualization
-Interactive web app exploring patterns in the 1912 Titanic disaster
-"""
-
 import gradio as gr
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-print("=" * 60)
-print("TITANIC VISUALIZATION APP - LOADING")
-print("=" * 60)
-
-# ============================================================================
-# SECTION 1: DATA LOADING & PREPARATION
-# ============================================================================
-
-print("\n[1/4] Loading data from train.csv...")
+#DATA LOADING & PREPARATION
 
 # Load raw data
 df_raw = pd.read_csv('titanic_data.csv')
-print(f"  ✓ Loaded {len(df_raw)} passenger records")
 
 # Create working copy
 df = df_raw.copy()
 
-print("\n[2/4] Preparing data for visualization...")
-
-# Convert Sex to numeric for easier processing
-# 0 = Female, 1 = Male
+#Convert Sex to numeric for easier processing
+#0 = Female, 1 = Male
 df['Sex_Numeric'] = df['Sex'].map({'female': 0, 'male': 1})
-print(f"  ✓ Converted Sex to numeric")
 
-# Fill missing Age with median age
+#Fill missing Age with median age
 median_age = df['Age'].median()
 df['Age'].fillna(median_age, inplace=True)
-print(f"  ✓ Filled {df_raw['Age'].isnull().sum()} missing ages with median ({median_age:.1f})")
 
-# Fill missing Fare with median fare
+#Fill missing Fare with median fare
 median_fare = df['Fare'].median()
 df['Fare'].fillna(median_fare, inplace=True)
-print(f"  ✓ Filled missing fares")
 
-# Fill missing Embarked with most common port
+#Fill missing Embarked with most common port
 df['Embarked'].fillna('S', inplace=True)
-print(f"  ✓ Filled missing embarkation ports")
 
-# Create FamilySize feature
+#Create FamilySize feature
 df['FamilySize'] = df['SibSp'] + df['Parch'] + 1
-print(f"  ✓ Created FamilySize feature")
 
-# Create Age Groups for better visualization
+#Create Age Groups for better visualization
 df['AgeGroup'] = pd.cut(df['Age'], 
                         bins=[0, 12, 18, 35, 50, 100],
                         labels=['Child (0-12)', 'Teen (13-18)', 'Adult (19-35)', 
                                'Middle Age (36-50)', 'Senior (50+)'])
-print(f"  ✓ Created age group categories")
 
-# Create Fare Groups
+#Create Fare Groups
 df['FareGroup'] = pd.qcut(df['Fare'], q=4, 
                           labels=['Low', 'Medium-Low', 'Medium-High', 'High'],
                           duplicates='drop')
-print(f"  ✓ Created fare group categories")
 
-print("\n[3/4] Data preparation complete!")
-print(f"  Final dataset: {df.shape[0]} rows × {df.shape[1]} columns")
-print(f"  Survival rate: {df['Survived'].mean()*100:.1f}%")
-
-# Store key statistics for use in visualizations
+#Store key statistics for use in visualizations
 total_passengers = len(df)
 total_survived = df['Survived'].sum()
 survival_rate = df['Survived'].mean() * 100
 
-print("\n[4/4] Ready to create visualizations!")
-print("=" * 60)
-
-
-# ============================================================================
-# SECTION 2: VISUALIZATION FUNCTIONS
-# ============================================================================
+#VISUALIZATION FUNCTIONS
 
 def create_overview_dashboard():
     """
     Creates a comprehensive 4-panel dashboard showing key survival patterns.
-    
-    Charts included:
-    1. Top-left: Survival rate by gender (bar chart)
-    2. Top-right: Survival rate by passenger class (bar chart)  
-    3. Bottom-left: Age distribution comparison (overlapping histograms)
-    4. Bottom-right: Fare distribution comparison (box plots)
-    
-    Returns:
-        Plotly Figure object with 2x2 subplot layout
     """
     
-    print("\n  Creating overview dashboard...")
     
-    # Create 2×2 grid of subplots
+    #Create 2×2 grid of subplots
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=(
@@ -114,15 +71,13 @@ def create_overview_dashboard():
         horizontal_spacing=0.1
     )
     
-    # ---------------------------------------------------------------
-    # CHART 1: Survival by Gender (Top Left)
-    # ---------------------------------------------------------------
+    #CHART 1: Survival by Gender (Top Left)
     
     # Calculate survival rate for each gender
     gender_stats = df.groupby('Sex')['Survived'].agg(['sum', 'count', 'mean']).reset_index()
     gender_stats['survival_pct'] = gender_stats['mean'] * 100
     
-    # Create bar chart
+    #Create bar chart
     fig.add_trace(
         go.Bar(
             x=['Female', 'Male'],
@@ -137,15 +92,13 @@ def create_overview_dashboard():
         row=1, col=1
     )
     
-    # ---------------------------------------------------------------
-    # CHART 2: Survival by Class (Top Right)
-    # ---------------------------------------------------------------
+    #CHART 2: Survival by Class (Top Right)
     
-    # Calculate survival rate for each class
+    #Calculate survival rate for each class
     class_stats = df.groupby('Pclass')['Survived'].agg(['sum', 'count', 'mean']).reset_index()
     class_stats['survival_pct'] = class_stats['mean'] * 100
     
-    # Create bar chart with different color for each class
+    #Create bar chart with different color for each class
     fig.add_trace(
         go.Bar(
             x=['1st Class', '2nd Class', '3rd Class'],
@@ -160,15 +113,13 @@ def create_overview_dashboard():
         row=1, col=2
     )
     
-    # ---------------------------------------------------------------
-    # CHART 3: Age Distribution (Bottom Left)
-    # ---------------------------------------------------------------
+    #CHART 3: Age Distribution (Bottom Left)
     
-    # Get ages for survivors and non-survivors
+    #Get ages for survivors and non-survivors
     survived_ages = df[df['Survived'] == 1]['Age']
     died_ages = df[df['Survived'] == 0]['Age']
     
-    # Add histogram for survivors
+    #Add histogram for survivors
     fig.add_trace(
         go.Histogram(
             x=survived_ages,
@@ -182,7 +133,7 @@ def create_overview_dashboard():
         row=2, col=1
     )
     
-    # Add histogram for non-survivors (overlapping)
+    #Add histogram for non-survivors (overlapping)
     fig.add_trace(
         go.Histogram(
             x=died_ages,
@@ -196,15 +147,13 @@ def create_overview_dashboard():
         row=2, col=1
     )
     
-    # ---------------------------------------------------------------
-    # CHART 4: Fare Distribution (Bottom Right)
-    # ---------------------------------------------------------------
+    #CHART 4: Fare Distribution (Bottom Right)
     
-    # Get fares for survivors and non-survivors
+    #Get fares for survivors and non-survivors
     survived_fares = df[df['Survived'] == 1]['Fare']
     died_fares = df[df['Survived'] == 0]['Fare']
     
-    # Add box plot for survivors
+    #Add box plot for survivors
     fig.add_trace(
         go.Box(
             y=survived_fares,
@@ -216,7 +165,7 @@ def create_overview_dashboard():
         row=2, col=2
     )
     
-    # Add box plot for non-survivors
+    #Add box plot for non-survivors
     fig.add_trace(
         go.Box(
             y=died_fares,
@@ -228,11 +177,9 @@ def create_overview_dashboard():
         row=2, col=2
     )
     
-    # ---------------------------------------------------------------
-    # LAYOUT & STYLING
-    # ---------------------------------------------------------------
+    #LAYOUT & STYLING
     
-    # Update overall layout
+    #Update overall layout
     fig.update_layout(
         height=800,
         title_text=f"<b>Titanic Survival Analysis Dashboard</b><br>" + 
@@ -251,7 +198,7 @@ def create_overview_dashboard():
         paper_bgcolor='white'
     )
     
-    # Update axis labels and styling
+    #Update axis labels and styling
     fig.update_xaxes(title_text="Gender", row=1, col=1, showgrid=False)
     fig.update_xaxes(title_text="Passenger Class", row=1, col=2, showgrid=False)
     fig.update_xaxes(title_text="Age (years)", row=2, col=1, showgrid=True, gridcolor='lightgray')
@@ -269,21 +216,10 @@ def create_overview_dashboard():
 def create_interactive_scatter():
     """
     Creates an interactive scatter plot showing Age vs Fare for each passenger.
-    
-    Interactive features:
-    - Hover to see passenger details
-    - Color-coded by survival outcome
-    - Different symbols for male/female
-    - Point size represents family size
-    - Zoom and pan enabled
-    
-    Returns:
-        Plotly Express scatter plot figure
     """
     
-    print("\n  Creating interactive scatter plot...")
     
-    # Prepare data with readable labels
+    #Prepare data with readable labels
     scatter_df = df.copy()
     scatter_df['Outcome'] = scatter_df['Survived'].map({
         0: 'Did Not Survive',
@@ -299,7 +235,7 @@ def create_interactive_scatter():
         3: '3rd Class'
     })
     
-    # Create scatter plot
+    #Create scatter plot
     fig = px.scatter(
         scatter_df,
         x='Age',
@@ -332,7 +268,7 @@ def create_interactive_scatter():
         height=600
     )
     
-    # Update layout for better interactivity
+    #Update layout for better interactivity
     fig.update_layout(
         hovermode='closest',
         plot_bgcolor='white',
@@ -346,19 +282,16 @@ def create_interactive_scatter():
         )
     )
     
-    # Add grid
+    #Add grid
     fig.update_xaxes(showgrid=True, gridcolor='lightgray')
     fig.update_yaxes(showgrid=True, gridcolor='lightgray')
     
-    print("  ✓ Scatter plot created")
     
     return fig
 
-# ============================================================================
-# SECTION 3: GRADIO WEB INTERFACE
-# ============================================================================
+#GRADIO WEB INTERFACE
 
-# Custom CSS for styling
+#Custom CSS for styling
 custom_css = """
 .gradio-container {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
@@ -377,41 +310,36 @@ h1 {
 }
 """
 
-# Create the Gradio application
+#Create the Gradio application
 with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival Analysis") as app:
     
-    # ========================================================================
-    # HEADER
-    # ========================================================================
+    #HEADER
     
     gr.Markdown("""
-    # 🚢 Titanic Survival Analysis
-    ### Interactive Data Visualization Project
+    #Titanic Survival Analysis
     
     Explore patterns from the 1912 Titanic disaster through interactive visualizations.
     This project demonstrates data storytelling, visual design, and interactive analytics.
     """)
     
-    # ========================================================================
-    # TAB 1: DATA VISUALIZATION
-    # ========================================================================
+    #TAB 1: DATA VISUALIZATION
     
     with gr.Tab("📊 Data Visualization"):
         
         gr.Markdown("""
-        ## Survival Pattern Analysis
+        #Survival Pattern Analysis
         
         Click the button below to load interactive visualizations revealing how demographic 
         factors influenced survival outcomes aboard the Titanic.
         
-        ### Key Insights Revealed:
+        #Key Insights Revealed:
         - **Gender Effect**: The "women and children first" evacuation policy
         - **Class Disparity**: Socioeconomic status dramatically affected survival chances
         - **Age Patterns**: How age influenced survival likelihood
         - **Economic Factors**: Relationship between fare paid and survival
         """)
         
-        # Button to load visualizations
+        #Button to load visualizations
         with gr.Row():
             load_btn = gr.Button(
                 "🔄 Load Interactive Visualizations", 
@@ -422,9 +350,9 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         gr.Markdown("---")
         
-        # Overview Dashboard
+        #Overview Dashboard
         gr.Markdown("""
-        ### Statistical Overview
+        #Statistical Overview
         
         This dashboard presents four complementary views of the data:
         - **Bar charts** show survival rates across categories
@@ -436,9 +364,9 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         gr.Markdown("---")
         
-        # Interactive Scatter Plot
+        #Interactive Scatter Plot
         gr.Markdown("""
-        ### Interactive Passenger Explorer
+        ##Interactive Passenger Explorer
         
         Each point represents one passenger. **Hover over points** to see individual details.
         **Zoom** and **pan** to explore specific regions. Notice how:
@@ -449,10 +377,10 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         scatter_plot = gr.Plot(label="Interactive Scatter Plot", show_label=False)
         
-        # Statistical Summary
+        #Statistical Summary
         gr.Markdown(f"""
         ---
-        ### Dataset Summary
+        ##Dataset Summary
         
         - **Total Passengers**: {total_passengers:,}
         - **Survivors**: {int(total_survived):,} ({survival_rate:.1f}%)
@@ -460,13 +388,11 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         - **Data Source**: Kaggle Titanic Dataset (Training Set)
         """)
         
-        # Connect button to visualization functions
+        #Connect button to visualization functions
         def load_visualizations():
             """Called when user clicks the load button"""
-            print("\n[USER ACTION] Loading visualizations...")
             dashboard = create_overview_dashboard()
             scatter = create_interactive_scatter()
-            print("[USER ACTION] Visualizations loaded successfully!\n")
             return dashboard, scatter
         
         load_btn.click(
@@ -474,16 +400,14 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
             outputs=[overview_plot, scatter_plot]
         )
     
-    # ========================================================================
-    # TAB 2: ABOUT & METHODOLOGY
-    # ========================================================================
+    #TAB 2: ABOUT & METHODOLOGY
     
     with gr.Tab("ℹ️ About This Project"):
         
         gr.Markdown("""
-        ## About This Data Visualization Project
+        #About This Data Visualization Project
         
-        ### Historical Context
+        ##Historical Context
         
         The RMS Titanic sank on April 15, 1912, after striking an iceberg during her maiden 
         voyage from Southampton to New York City. Of the estimated 2,224 passengers and crew 
@@ -495,7 +419,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Dataset Features
+        ##Dataset Features
         
         **Demographics:**
         - Age: Passenger age in years (median: 28)
@@ -517,7 +441,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Data Processing Steps
+        ##Data Processing Steps
         
         1. **Missing Value Handling:**
            - Filled 177 missing ages with median age (28 years)
@@ -537,7 +461,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Visualization Design Principles
+        ##Visualization Design Principles
         
         **Color Theory:**
         - Consistent color scheme throughout (teal = survived, coral = died)
@@ -563,7 +487,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Key Statistical Findings
+        ##Key Statistical Findings
         
         **Overall Survival:**
         - 38.4% of passengers survived
@@ -593,7 +517,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Technologies Used
+        ##Technologies Used
         
         - **Python 3.11+**: Core programming language
         - **Pandas 2.0+**: Data manipulation and analysis
@@ -602,7 +526,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Project Goals & Learning Outcomes
+        ##Project Goals & Learning Outcomes
         
         This project demonstrates:
         
@@ -614,7 +538,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Educational Value
+        ##Educational Value
         
         Beyond the technical skills, this dataset teaches important lessons about:
         - **Social inequality**: How class and wealth affected life-or-death outcomes
@@ -624,7 +548,7 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         
         ---
         
-        ### Connect & Learn More
+        ##Connect & Learn More
         
         **Created by:** Talia Kumar  
         **Education:** B.S. Computational Applied Math & Statistics, Colorado School of Mines (Expected 2027)  
@@ -640,18 +564,9 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Soft(), title="Titanic Survival A
         **Data Source:** [Kaggle Titanic Dataset](https://www.kaggle.com/c/titanic)
         """)
 
-# ============================================================================
-# SECTION 4: LAUNCH THE APPLICATION
-# ============================================================================
+#LAUNCH THE APPLICATION
 
 if __name__ == "__main__":
-    print("\n" + "=" * 60)
-    print("LAUNCHING GRADIO WEB APPLICATION")
-    print("=" * 60)
-    print("\nThe app will open automatically in your browser.")
-    print("If it doesn't, copy the URL from the output below.")
-    print("\nTo stop the app: Press Ctrl+C")
-    print("=" * 60 + "\n")
     
     # Launch with share=False for local testing
     # Change to share=True to create a public link
